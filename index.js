@@ -24,6 +24,11 @@ async function run() {
 
         app.post('/users', async (req, res) => {
 
+            // check if email is already in use
+            const email = req.body.email;
+            const findEmail = usersCollection.find({ email: email })
+            if (findEmail.length) return res.status(400).send({ 'message': 'Email already in use' })
+
             // hash the user's password
             const password = req.body.password;
             const salt = await bcrypt.genSalt(10)
