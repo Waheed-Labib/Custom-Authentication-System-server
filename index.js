@@ -22,12 +22,13 @@ async function run() {
         const database = client.db("customAuthSystem");
         const usersCollection = database.collection("users");
 
-        app.post('/users', async (req, res) => {
+        // api for creating new user
+        app.post('/users/signup', async (req, res) => {
 
             // check if email is already in use
             const email = req.body.email;
-            const findEmail = usersCollection.find({ email: email })
-            if (findEmail.length) return res.status(400).send({ 'message': 'Email already in use' })
+            const findEmail = await usersCollection.findOne({ email: email })
+            if (findEmail) return res.status(400).json({ error: "Email is already in use." })
 
             // hash the user's password
             const password = req.body.password;
@@ -44,6 +45,25 @@ async function run() {
             // insert the user to database
             const result = await usersCollection.insertOne(user);
             res.send(result)
+        })
+
+        // api for login
+        app.post('/users/login', async (req, res) => {
+            // check if user exists
+            const email = req.body.email;
+            const user = await usersCollection.findOne({ email: email })
+            if (!user) return res.status(400).json({ error: "User Not Found." })
+
+            // check if password is valid
+            const password = req.body.password;
+            const isValidPassword = await bcrypt.compare(password, user.password)
+
+            if (!isValidPassword) return res.status(400).json({ error: "Invalid Password." })
+
+            res.send({
+                message: "Login Successful",
+                user: user
+            })
         })
     } finally {
 
