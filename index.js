@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const { MongoClient } = require('mongodb');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 5000;
 require('dotenv').config();
 
@@ -64,6 +65,17 @@ async function run() {
                 message: "Login Successful",
                 user: user
             })
+        })
+
+        // api to get jwt token
+        app.post('/jwt', async (req, res) => {
+            const email = req.query.email;
+            const user = await usersCollection.findOne({ email: email })
+            if (!user) {
+                return res.status(403).send({ accessToken: '' })
+            }
+            const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, { expiresIn: "2h" })
+            res.send({ accessToken: token })
         })
     } finally {
 
