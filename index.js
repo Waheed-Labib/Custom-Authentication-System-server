@@ -18,6 +18,29 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@clu
 
 const client = new MongoClient(uri);
 
+function verifyJWT(req, res, next) {
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).send({
+            message: 'Unauthorized Access'
+        });
+    }
+
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+        if (err) {
+            return res.status(403).send({
+                message: 'Forbidden Access'
+            })
+        }
+
+        req.decoded = decoded;
+        next()
+    })
+
+}
+
 async function run() {
     try {
         const database = client.db("customAuthSystem");
@@ -83,9 +106,18 @@ async function run() {
         })
 
         // get an individual user
-        app.get('/users/:id', async (req, res) => {
+        app.get('/users/:id', verifyJWT, async (req, res) => {
+
             const _id = new ObjectId(req.params.id);
             const user = await usersCollection.findOne({ _id: _id });
+
+            const decodedEmail = req.decoded.email;
+            if (user.email !== decodedEmail) {
+                return res.status(403).send({
+                    message: 'Forbidden Access'
+                })
+            }
+
             res.send(user)
         })
     } finally {
