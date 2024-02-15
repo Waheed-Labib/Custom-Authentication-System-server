@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 5000;
@@ -45,7 +45,11 @@ async function run() {
 
             // insert the user to database
             const result = await usersCollection.insertOne(user);
-            res.send(result)
+            user._id = result.insertedId;
+            res.send({
+                message: 'Signup successful',
+                user: user
+            })
         })
 
         // api for login
@@ -76,6 +80,13 @@ async function run() {
             }
             const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, { expiresIn: "2h" })
             res.send({ accessToken: token })
+        })
+
+        // get an individual user
+        app.get('/users/:id', async (req, res) => {
+            const _id = new ObjectId(req.params.id);
+            const user = await usersCollection.findOne({ _id: _id });
+            res.send(user)
         })
     } finally {
 
